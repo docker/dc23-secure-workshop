@@ -165,7 +165,7 @@ Repeat the above steps for the `$ORG/scout-demo-service-back:v1` image (or any o
 
 </details>
 
-## Hand-on #2: Using Docker Scout to connect your data model
+<details><summary><h2>Hand-on #2: Using Docker Scout to connect your data model</h2></summary>
 
 ### Registry - https://scout.docker.com Integration
 
@@ -243,3 +243,117 @@ You can build and push the different versions of the images you previously built
    - compare images between versions and/or environments
 
    ![](./ss/scout-demo-service-ui-compare.png)
+
+</details>
+
+## Hand-on #3: Explore & add provenance & SBOMs using Buildkit & Docker Scout
+
+### Provenance Attestation
+
+Remember the `--tag` flag when we explore the base image recommendations or the dropdown to pick
+the right one in the UI?
+
+```console
+docker scout recommendations --tag 3.14 $ORG/scout-demo-service:v1
+```
+
+This tag was needed because the base image exists under different tag (`latest`, `3`, `3.14` at least)
+and the information contained in the image are not sufficient to pick the right one.
+
+So let's fix that.
+
+1. Build a new image with _provenance_ attestation
+
+   ```console
+   cd frontend
+   # edit Dockerfile to do any change, for instance add
+   # ENV provenance=1
+   # at the end, just to force to have a new image
+   docker build -t $ORG/scout-demo-service:provenance \
+     --provenance=mode=max \
+     --push .
+   ```
+2. Get recommendations about the image that has been pushed
+
+   ```console
+   docker scout recommendations registry://$ORG/scout-demo-service:provenance
+   ```
+
+   This time you didn't provided the `--tag` and it picked the right one
+
+   > Base image is `alpine:3.14`
+
+> **Note on `push` and `registry://`**
+>
+> We need to access the provenance attestation from the image. It's written at the level
+> of the _Image Index_ (same as for multi-arch images). Local docker daemon doesn't allow
+> currently to easily access those information.
+>
+> But they are available from registries. So when pushed, all these extra information will
+> be available and CLI or https://scout.docker.com tools will be able to use them.
+
+### SBOM
+
+When an image is used on the CLI or pushed to https://scout.docker.com one of the first
+steps is to index it. It means to go through the image and find all the packages for instance.
+
+It also means this action might be performed multiple times, like if we want to see
+the vulnerabilities of the image from different computers.
+
+But it's possible to generate SBOM at the build time and push it along with the image.
+That way, whatever the size of the initial image, we will only require the SBOM (enhanced
+with provenance if available) and it will make all the CLI actions faster and be sure
+the information displayed on https://scout.docker.com are the right ones.
+
+1. Build a new image with _SBOM_ attestation
+
+   ```console
+   cd frontend
+   # edit Dockerfile to do any change, for instance add
+   # ENV sbom=1
+   # at the end, just to force to have a new image
+   docker build -t $ORG/scout-demo-service:sbom \
+     --attest type=sbom,generator=docker/scout-sbom-indexer \
+     --push .
+   ```
+2. Run any `docker scout` CLI command and you should see:
+
+   > ✓ Provenance obtained from attestation
+   > ✓ SBOM obtained from attestation, 79 packages indexed
+
+   This means we only get the SBOM from the attestation, and we are not indexing locally
+   the image anymore. It's faster and more accurate.
+3. Mix together provenance and sbom
+
+   ```console
+   cd frontend
+   # edit Dockerfile to do any change, for instance add
+   # ENV attests=1
+   # at the end, just to force to have a new image
+   docker build -t $ORG/scout-demo-service:attests \
+     --provenance=mode=max \
+     --attest type=sbom,generator=docker/scout-sbom-indexer \
+     --push .
+   ```
+
+### Explore SBOM
+
+1. Extract the SBOM in `SPDX` format:
+
+   ```console
+   docker scout sbom --format spdx registry://$ORG/scout-demo-service:attests
+   ```
+2. Display packages of the image:
+
+   ```console
+   docker scout sbom --format list registry://$ORG/scout-demo-service:attests
+   ```
+
+   ![](./ss/package-list.png)
+3. Display vulnerable packages:
+
+   ```console
+   docker scout cves --format only-packages --only-vuln-packages registry://$ORG/scout-demo-service:attests
+   ```
+
+   ![](./ss/vuln-packages.png)
