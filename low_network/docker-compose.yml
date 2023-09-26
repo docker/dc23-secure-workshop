@@ -1,0 +1,13 @@
+services:
+  backend_ln:
+    image: ${NAMESPACE}/scout-demo-service-back-ln:v1
+    profiles:
+      - low-network
+    ports:
+      - 9090:9090
+    build:
+      dockerfile_inline: |
+        FROM alpine:3.18.2
+        RUN apk add --no-cache ca-certificates
+        COPY --from=yvesbrissaud/dc23ws:backend-v1 /backend /backend
+        CMD ["/backend"]
