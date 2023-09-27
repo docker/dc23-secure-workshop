@@ -36,11 +36,7 @@ It can be a personal or a team one. Better if you have full ownership on it.
    docker scout enroll $ORG
    ```
 
-<details><summary><h2>Hands-on #1: Remediating Vulnerabilities</h2></summary>
-
-### Workshop Images
-
-1. Build demo images
+7. Build demo images
 
    ```console
    docker compose --profile images build
@@ -59,10 +55,14 @@ It can be a personal or a team one. Better if you have full ownership on it.
    docker compose --profile low_network build
    ```
 
-2. Open Docker Desktop and select the image `$ORG/scout-demo-service:v1`
+<details><summary><h2>Hands-on #1: Remediating Vulnerabilities</h2></summary>
+
+### Workshop Images
+
+1. Open Docker Desktop and select the image `$ORG/scout-demo-service:v1`
 
     ![](./ss/layer_view_scout-demo-service_v1.png)
-3. Take the time to explore the different information displayed on this page
+2. Take the time to explore the different information displayed on this page
 
    - Image hierarchy, layers and the Images tab
    - Vulnerabilities
