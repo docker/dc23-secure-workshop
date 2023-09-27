@@ -297,7 +297,7 @@ docker push $ORG/scout-demo-service:v3
 
 </details>
 
-## Hand-on #3: Explore & add provenance & SBOMs using Buildkit & Docker Scout
+<details><summary><h2>Hand-on #3: Explore & add provenance & SBOMs using Buildkit & Docker Scout</h2></summary>
 
 ### Reset git repository
 
@@ -437,3 +437,114 @@ the information displayed on https://scout.docker.com are the right ones.
    ```
 
    ![](./ss/vuln-packages.png)
+
+</details>
+
+## Hands-on #4: Getting back into compliance with Docker Scout
+
+### Reset git repository
+
+```console
+git reset --hard hands-on-4
+```
+
+### Explore policy
+
+Up to now, we've focused on single images. Now let's see how policy highlights
+concerns across all our images.
+
+1. Build and push both images in the app.
+
+   ```console
+   ( cd frontend && \
+     docker build -t $ORG/scout-demo-service:4 \
+       --sbom=generator=docker/scout-sbom-indexer \
+       --provenance=mode=max --push . )
+   ```
+
+   ```console
+   ( cd backend && \
+     docker build -t $ORG/scout-demo-service-back:4 \
+       --sbom=generator=docker/scout-sbom-indexer \
+       --provenance=mode=max --push . )
+   ```
+
+2. View policy status for a single image using the CLI
+
+   ```console
+   docker scout policy $ORG/scout-demo-service-back:4
+   ```
+
+   ![scout policy backend](./ss/policy-backend.png)
+
+3. Go to https://scout.docker.com and click on "Policies EA" at the top
+
+   ![scout policy web site](./ss/policy.png)
+
+4. Explore the "Critical and high vulnerabilities with fixes" policy and view the details
+   on the `$ORG/scout-demo-service`
+
+### Improve policy compliance
+
+1. From looking through the layers before, we know how to fix that. Let's update the base image
+   in [`frontend/Dockerfile`](frontend/Dockerfile):
+
+   ```dockerfile
+   FROM alpine:3.18
+   ```
+
+2. Now rebuild, incrementing the tag
+
+   ```console
+   ( cd frontend && \
+     docker build -t $ORG/scout-demo-service:4.1 \
+       --sbom=generator=docker/scout-sbom-indexer \
+       --provenance=mode=max --load . )
+   ```
+
+3. Note we did not push the image in the previous step. Entirely locally, we can see if we have
+   improve policy compliance using the `compare` command we used previously when focusing on
+   fixing vulnerabilities
+
+   ```console
+   docker scout compare $ORG/scout-demo-service:4.1 --to $ORG/scout-demo-service:4
+   ```
+
+   ![scout policy compare 0](./ss/policy-compare-0.png)
+   ![scout policy compare 1](./ss/policy-compare-1.png)
+
+   Scrolling past the Overview to the Policies section of the output, you can see you improved
+   two policies without pushing images or running CI.
+
+4. We see from the above command that while we are now compliant with the "All critical
+   vulnerabilities", we are still not in compliance with the "Critical and high
+   vulnerabilities with fixes" policy, there are still two high vulnerabilities. From our first
+   hands-on earlier today, we know how to fix that too. Update the express dependency in
+   [`frontend/package.json`](frontend/package.json) to version 4.17.3 and rebuild the image.
+
+   ```console
+   ( cd frontend && \
+     docker build -t $ORG/scout-demo-service:4.2 \
+       --sbom=generator=docker/scout-sbom-indexer \
+       --provenance=mode=max --load . )
+   ```
+
+5. Run the `compare` command again to see if we are fully compliant
+
+   ```console
+   docker scout compare $ORG/scout-demo-service:4.2 --to $ORG/scout-demo-service:4
+   ```
+
+6. That did the trick, so push the image
+
+   ```console
+   docker push $ORG/scout-demo-service:4.2
+   ```
+
+7. Go to https://scout.docker.com
+
+   ![scout policy web fix](./ss/policy-fix.png)
+
+### Extra Image
+
+Repeat the above steps for the `$ORG/scout-demo-service-back` image (or any other image you have).

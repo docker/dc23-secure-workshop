@@ -19,3 +19,5 @@ FROM alpine:3.18.2
 RUN apk add --no-cache ca-certificates
 COPY --from=builder /go/src/backend /backend
 CMD ["/backend"]
+
+ENV DUMMY=4

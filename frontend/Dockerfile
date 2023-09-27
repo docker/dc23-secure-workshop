@@ -22,4 +22,4 @@ CMD ["node","/app/app.js"]
 
 EXPOSE 3000
 
-ENV DUMMY=1
+ENV DUMMY=4
