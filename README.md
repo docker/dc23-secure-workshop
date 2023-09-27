@@ -57,7 +57,7 @@ It can be a personal or a team one. Better if you have full ownership on it.
 
 <details><summary><h2>Hands-on #1: Remediating Vulnerabilities</h2></summary>
 
-### Workshop Images
+### Base Image Fix (Docker Desktop)
 
 1. Open Docker Desktop and select the image `$ORG/scout-demo-service:v1`
 
@@ -68,24 +68,30 @@ It can be a personal or a team one. Better if you have full ownership on it.
    - Vulnerabilities
    - Packages
 
-### Base Image Fix (Docker Desktop)
-
-1. Select your base image and explore vulnerabilities specific to the base image
+3. Select your base image and explore vulnerabilities specific to the base image.
+   Then select "Recommendations for base image…" in the "Recommended fixes"
+   dropdown in the upper right portion of the window.
 
    ![](./ss/select-base-image.png)
 
-2. Select _Change base image_ and pick the current image as it's defined in [`./frontend/Dockerfile`](./frontend/Dockerfile)
+4. Select _Change base image_ and set the current image to 3.14
 
    ![](./ss/change-base-image.png)
 
-3. Apply the recommendation to the [`Dockerfile`](./frontend/Dockerfile)
-4. (optional) Update the tag to `v2` in [`docker-compose.yml`](./docker-compose.yml)
-5. Rebuild the image
+5. Open [`frontend/Dockerfile`](./frontend/Dockerfile) in your favorite file editor
+   and apply the "Tag is preferred tag" recommendation, i.e., change the `FROM` line to
+
+   ```dockerfile
+   FROM alpine:3.18
+   ```
+
+6. (optional) Update the tag to `v2` in [`docker-compose.yml`](./docker-compose.yml)
+7. Rebuild the image
 
    ```console
    docker compose --profile scout-demo-service build
    ```
-6. Open the image inside Desktop and see the impact of your change
+8. Open the image inside Desktop and see the impact of your change
 
    ![](./ss/layer_view_scout-demo-service_v2.png)
 
@@ -117,7 +123,7 @@ It can be a personal or a team one. Better if you have full ownership on it.
 
    ![](./ss/scout-demo-service-v1-recommendations.png)
 
-5. Apply the recommendation to the [`Dockerfile`](./frontend/Dockerfile)
+5. Apply the "Tag is preferred tag" recommendation to the [`frontend/Dockerfile`](./frontend/Dockerfile)
 6. (optional) Update the tag to `v2` in [`docker-compose.yml`](./docker-compose.yml)
 7. Rebuild the image
 
