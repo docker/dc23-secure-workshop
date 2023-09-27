@@ -246,7 +246,7 @@ You can build and push the different versions of the images you previously built
 
 </details>
 
-## Hand-on #3: Explore & add provenance & SBOMs using Buildkit & Docker Scout
+<details><summary><h2>Hand-on #3: Explore & add provenance & SBOMs using Buildkit & Docker Scout</h2></summary>
 
 ### Provenance Attestation
 
@@ -357,3 +357,5 @@ the information displayed on https://scout.docker.com are the right ones.
    ```
 
    ![](./ss/vuln-packages.png)
+
+</details>
