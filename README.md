@@ -188,7 +188,7 @@ Option 1: Use Docker Scout Dashboard**
 
 1. Go to https://scout.docker.com
 2. Select your organization in the dropdown next to your user
-3. Open the settings menu (⚙️icon) and select _Repository settings_
+3. Open the settings menu (⚙️ icon) and select _Repository settings_
 4. Select the repository to enable and enable it
 
 **Option 2: Docker Hub Integration using the CLI**
@@ -205,8 +205,12 @@ Option 1: Use Docker Scout Dashboard**
 
    ```console
    docker push $ORG/scout-demo-service:v1
+   ```
+
+   ```console
    docker push $ORG/scout-demo-service-back:v1
    ```
+
 2. Browse https://scout.docker.com and see your images (this might take up to a few minutes)
 
    ![](./ss/pushes_images.png)
@@ -217,6 +221,11 @@ Reproduce the exploratory steps from _Hands-on #1_ on https://scout.docker.com.
 Find vulnerabilities, package information and compare your images.
 
 You can build and push the different versions of the images you previously built (with vulnerabilities or with fixes).
+Or simply push the fixes you built in the first hands-on exercise.
+
+```console
+docker push $ORG/scout-demo-service:v3
+```
 
 ### Record images to an environment
 
@@ -232,6 +241,9 @@ You can build and push the different versions of the images you previously built
 
    ```console
    docker scout environment
+   ```
+
+   ```console
    docker scout environment staging
    ```
 
@@ -249,6 +261,18 @@ You can build and push the different versions of the images you previously built
    - compare images between versions and/or environments
 
    ![](./ss/scout-demo-service-ui-compare.png)
+
+4. Record `v3` to the staging environment
+
+   ```console
+   docker scout environment staging registry://$ORG/scout-demo-service:v3
+   ```
+
+5. Verify you have no vulnerabilities in `staging` at https://scout.docker.com &gt;
+   Vulnerabilities and select the staging environment
+
+6. Browse available integrations on https://scout.docker.com &gt;
+   Settings (⚙️ icon) &gt; Integrations
 
 </details>
 
