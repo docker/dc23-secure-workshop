@@ -36,11 +36,7 @@ It can be a personal or a team one. Better if you have full ownership on it.
    docker scout enroll $ORG
    ```
 
-<details><summary><h2>Hands-on #1: Remediating Vulnerabilities</h2></summary>
-
-### Workshop Images
-
-1. Build demo images
+7. Build demo images
 
    ```console
    docker compose --profile images build
@@ -59,33 +55,43 @@ It can be a personal or a team one. Better if you have full ownership on it.
    docker compose --profile low_network build
    ```
 
-2. Open Docker Desktop and select the image `$ORG/scout-demo-service:v1`
+<details><summary><h2>Hands-on #1: Remediating Vulnerabilities</h2></summary>
+
+### Base Image Fix (Docker Desktop)
+
+1. Open Docker Desktop and select the image `$ORG/scout-demo-service:v1`
 
     ![](./ss/layer_view_scout-demo-service_v1.png)
-3. Take the time to explore the different information displayed on this page
+2. Take the time to explore the different information displayed on this page
 
    - Image hierarchy, layers and the Images tab
    - Vulnerabilities
    - Packages
 
-### Base Image Fix (Docker Desktop)
-
-1. Select your base image and explore vulnerabilities specific to the base image
+3. Select your base image and explore vulnerabilities specific to the base image.
+   Then select "Recommendations for base image…" in the "Recommended fixes"
+   dropdown in the upper right portion of the window.
 
    ![](./ss/select-base-image.png)
 
-2. Select _Change base image_ and pick the current image as it's defined in [`./frontend/Dockerfile`](./frontend/Dockerfile)
+4. Select _Change base image_ and set the current image to 3.14
 
    ![](./ss/change-base-image.png)
 
-3. Apply the recommendation to the [`Dockerfile`](./frontend/Dockerfile)
-4. (optional) Update the tag to `v2` in [`docker-compose.yml`](./docker-compose.yml)
-5. Rebuild the image
+5. Open [`frontend/Dockerfile`](./frontend/Dockerfile) in your favorite file editor
+   and apply the "Tag is preferred tag" recommendation, i.e., change the `FROM` line to
+
+   ```dockerfile
+   FROM alpine:3.18
+   ```
+
+6. (optional) Update the tag to `v2` in [`docker-compose.yml`](./docker-compose.yml)
+7. Rebuild the image
 
    ```console
    docker compose --profile scout-demo-service build
    ```
-6. Open the image inside Desktop and see the impact of your change
+8. Open the image inside Desktop and see the impact of your change
 
    ![](./ss/layer_view_scout-demo-service_v2.png)
 
@@ -117,7 +123,7 @@ It can be a personal or a team one. Better if you have full ownership on it.
 
    ![](./ss/scout-demo-service-v1-recommendations.png)
 
-5. Apply the recommendation to the [`Dockerfile`](./frontend/Dockerfile)
+5. Apply the "Tag is preferred tag" recommendation to the [`frontend/Dockerfile`](./frontend/Dockerfile)
 6. (optional) Update the tag to `v2` in [`docker-compose.yml`](./docker-compose.yml)
 7. Rebuild the image
 
@@ -182,7 +188,7 @@ Option 1: Use Docker Scout Dashboard**
 
 1. Go to https://scout.docker.com
 2. Select your organization in the dropdown next to your user
-3. Open the settings menu (⚙️icon) and select _Repository settings_
+3. Open the settings menu (⚙️ icon) and select _Repository settings_
 4. Select the repository to enable and enable it
 
 **Option 2: Docker Hub Integration using the CLI**
@@ -199,8 +205,12 @@ Option 1: Use Docker Scout Dashboard**
 
    ```console
    docker push $ORG/scout-demo-service:v1
+   ```
+
+   ```console
    docker push $ORG/scout-demo-service-back:v1
    ```
+
 2. Browse https://scout.docker.com and see your images (this might take up to a few minutes)
 
    ![](./ss/pushes_images.png)
@@ -211,6 +221,11 @@ Reproduce the exploratory steps from _Hands-on #1_ on https://scout.docker.com.
 Find vulnerabilities, package information and compare your images.
 
 You can build and push the different versions of the images you previously built (with vulnerabilities or with fixes).
+Or simply push the fixes you built in the first hands-on exercise.
+
+```console
+docker push $ORG/scout-demo-service:v3
+```
 
 ### Record images to an environment
 
@@ -226,6 +241,9 @@ You can build and push the different versions of the images you previously built
 
    ```console
    docker scout environment
+   ```
+
+   ```console
    docker scout environment staging
    ```
 
@@ -243,6 +261,18 @@ You can build and push the different versions of the images you previously built
    - compare images between versions and/or environments
 
    ![](./ss/scout-demo-service-ui-compare.png)
+
+4. Record `v3` to the staging environment
+
+   ```console
+   docker scout environment staging registry://$ORG/scout-demo-service:v3
+   ```
+
+5. Verify you have no vulnerabilities in `staging` at https://scout.docker.com &gt;
+   Vulnerabilities and select the staging environment
+
+6. Browse available integrations on https://scout.docker.com &gt;
+   Settings (⚙️ icon) &gt; Integrations
 
 </details>
 
@@ -262,31 +292,40 @@ and the information contained in the image are not sufficient to pick the right 
 
 So let's fix that.
 
-1. Build a new image with _provenance_ attestation
+1. Add a new command to the _end_ of the [`frontend/Dockerfile`](frontend/Dockerfile) so it gets rebuilt, but quickly
+
+   ```dockerfile
+   ENV DUMMY=1
+   ```
+
+2. Build a new image with _provenance_ attestation
 
    ```console
-   cd frontend
-   # edit Dockerfile to do any change, for instance add
-   # ENV provenance=1
-   # at the end, just to force to have a new image
-   docker build -t $ORG/scout-demo-service:provenance \
-     --provenance=mode=max \
-     --push .
+   ( cd frontend && \
+     docker build -t $ORG/scout-demo-service:provenance \
+       --provenance=mode=max --push . )
    ```
-2. Get recommendations about the image that has been pushed
+3. Get recommendations about the image that has been pushed
 
    ```console
    docker scout recommendations registry://$ORG/scout-demo-service:provenance
    ```
 
-   This time you didn't provided the `--tag` and it picked the right one
+   This time you didn't provided the `--tag` and it picked the right one!
 
    > Base image is `alpine:3.14`
+
+4. How did it do that? Let's look at the provenance.
+
+   ```console
+   docker buildx imagetools inspect $ORG/scout-demo-service:provenance \
+     --format '{{ json .Provenance.SLSA }}'
+   ```
 
 > **Note on `push` and `registry://`**
 >
 > We need to access the provenance attestation from the image. It's written at the level
-> of the _Image Index_ (same as for multi-arch images). Local docker daemon doesn't allow
+> of the _Image Index_ (same as for multi-arch images). The local Docker daemon doesn't allow
 > currently to easily access those information.
 >
 > But they are available from registries. So when pushed, all these extra information will
@@ -305,36 +344,33 @@ That way, whatever the size of the initial image, we will only require the SBOM 
 with provenance if available) and it will make all the CLI actions faster and be sure
 the information displayed on https://scout.docker.com are the right ones.
 
-1. Build a new image with _SBOM_ attestation
+1. Change the value of the environment variable we added in the provenance section
+
+   ```dockerfile
+   ENV DUMMY=2
+   ```
+
+2. Build a new image with an _SBOM_ attestation (and keep the provenance for good measure)
 
    ```console
-   cd frontend
-   # edit Dockerfile to do any change, for instance add
-   # ENV sbom=1
-   # at the end, just to force to have a new image
-   docker build -t $ORG/scout-demo-service:sbom \
-     --attest type=sbom,generator=docker/scout-sbom-indexer \
-     --push .
+   ( cd frontend && \
+     docker build -t $ORG/scout-demo-service:attests \
+       --sbom=generator=docker/scout-sbom-indexer \
+       --provenance=mode=max --push . )
    ```
-2. Run any `docker scout` CLI command and you should see:
+3. Run any `docker scout` CLI command, e.g.,
+
+   ```
+   docker scout quickview $ORG/scout-demo-service:attests
+   ```
+
+   and you should see:
 
    > ✓ Provenance obtained from attestation
    > ✓ SBOM obtained from attestation, 79 packages indexed
 
    This means we only get the SBOM from the attestation, and we are not indexing locally
    the image anymore. It's faster and more accurate.
-3. Mix together provenance and sbom
-
-   ```console
-   cd frontend
-   # edit Dockerfile to do any change, for instance add
-   # ENV attests=1
-   # at the end, just to force to have a new image
-   docker build -t $ORG/scout-demo-service:attests \
-     --provenance=mode=max \
-     --attest type=sbom,generator=docker/scout-sbom-indexer \
-     --push .
-   ```
 
 ### Explore SBOM
 
