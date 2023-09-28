@@ -64,7 +64,7 @@ click the "Apply & Restart" button.
    ```
 </details>
 
-## Hands-on #1: Remediating vulnerabilities
+<details><summary><h2>Hands-on #1: Remediating vulnerabilities</h2></summary>
 
 ### Reset git repository
 
@@ -76,7 +76,7 @@ git reset --hard hands-on-1
 
 1. Open Docker Desktop and select the image `$ORG/scout-demo-service:v1`
 
-    ![](./ss/layer_view_scout-demo-service_v1.png)
+   ![](./ss/layer_view_scout-demo-service_v1.png)
 2. Take the time to explore the different information displayed on this page
 
    - Image hierarchy, layers and the Images tab
@@ -183,3 +183,114 @@ git reset --hard hands-on-1
 ### Extra Image
 
 Repeat the above steps for the `$ORG/scout-demo-service-back:v1` image (or any other image you have).
+
+</details>
+
+## Hand-on #2: Using Docker Scout to connect your data model
+
+### Reset git repository
+
+```console
+git reset --hard hands-on-2
+```
+
+### Registry - https://scout.docker.com Integration
+
+#### Create repositories
+
+Go to https://hub.docker.com and create repositories for the images you will push
+
+- `$ORG/scout-demo-service`
+- `$ORG/scout-demo-service-back`
+
+#### Enable repositories for Docker Scout
+
+_Option 1: Use Docker Scout Dashboard_
+
+1. Go to https://scout.docker.com
+2. Select your organization in the dropdown next to your user
+3. Open the settings menu (⚙️ icon) and select _Repository settings_
+4. Select the repository to enable and enable it
+
+_Option 2: Docker Hub Integration using the CLI_
+
+```console
+docker scout repo enable $ORG/scout-demo-service
+```
+
+```console
+docker scout repo enable $ORG/scout-demo-service-back
+```
+
+### Push images
+
+1. Push an image to Hub
+
+   ```console
+   docker push $ORG/scout-demo-service:v1
+   ```
+
+2. Browse https://scout.docker.com and see your images (this might take up to a few minutes)
+
+   ![](./ss/pushes_images.png)
+
+### Analyze images
+
+Reproduce the exploratory steps from _Hands-on #1_ on https://scout.docker.com.
+Find vulnerabilities, package information and compare your images.
+
+You can build and push the different versions of the images you previously built (with vulnerabilities or with fixes).
+Or simply push the fixes you built in the first hands-on exercise.
+
+```console
+docker push $ORG/scout-demo-service:v3
+```
+
+### Record images to an environment
+
+1. Record the image to an environment (adapt to your registry)
+
+   ```console
+   docker scout environment staging registry://$ORG/scout-demo-service:v1
+   ```
+
+   This will explicitly record the image that has been pushed to a registry, to the environment `staging`.
+
+   ![](./ss/staging.png)
+
+2. Investigate environment information from the CLI
+
+   ```console
+   docker scout environment
+   ```
+
+   ```console
+   docker scout environment staging
+   ```
+
+3. Compare your fixed local image to the one recorded as part of the `staging` environment
+
+   ```console
+   docker scout compare local://$ORG/scout-demo-service:v3 --to-env staging
+   ```
+
+   ![](./ss/scout-demo-service-compare-staging.png)
+4. Browse https://scout.docker.com
+
+   - find images recorded to an environment
+   - find vulnerabilities and packages in an environment
+   - compare images between versions and/or environments
+
+   ![](./ss/scout-demo-service-ui-compare.png)
+
+5. Record `v3` to the staging environment
+
+   ```console
+   docker scout environment staging registry://$ORG/scout-demo-service:v3
+   ```
+
+6. Verify you have no vulnerabilities in `staging` at https://scout.docker.com &gt;
+   Vulnerabilities and select the staging environment
+
+7. Browse available integrations on https://scout.docker.com &gt;
+   Settings (⚙️ icon) &gt; Integrations
