@@ -1,0 +1,25 @@
+include:
+  - path: low_network/docker-compose.yml
+
+services:
+  scout-demo-service:
+    image: ${NAMESPACE}/scout-demo-service:v1
+    profiles:
+      - images
+      - scout-demo-service
+    ports:
+      - 3000:3000
+    build: #https://github.com/docker/scout-demo-service.git#main
+      context: ./frontend/
+      dockerfile: Dockerfile
+
+  backend:
+    image: ${NAMESPACE}/scout-demo-service-back:v1
+    profiles:
+      - images
+      - backend
+    ports:
+      - 9090:9090
+    build:
+      context: ./backend/
+      dockerfile: ./Dockerfile
