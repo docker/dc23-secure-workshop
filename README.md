@@ -186,7 +186,7 @@ Repeat the above steps for the `$ORG/scout-demo-service-back:v1` image (or any o
 
 </details>
 
-## Hand-on #2: Using Docker Scout to connect your data model
+<details><summary><h2>Hand-on #2: Using Docker Scout to connect your data model</h2></summary>
 
 ### Reset git repository
 
@@ -294,3 +294,146 @@ docker push $ORG/scout-demo-service:v3
 
 7. Browse available integrations on https://scout.docker.com &gt;
    Settings (⚙️ icon) &gt; Integrations
+
+</details>
+
+## Hand-on #3: Explore & add provenance & SBOMs using Buildkit & Docker Scout
+
+### Reset git repository
+
+```console
+git reset --hard hands-on-3
+```
+
+### Provenance Attestation
+
+Remember the `--tag` flag when we explore the base image recommendations or the dropdown to pick
+the right one in the UI?
+
+```console
+docker scout recommendations --tag 3.14 $ORG/scout-demo-service:v1
+```
+
+This tag was needed because the base image exists under different tag (`latest`, `3`, `3.14` at least)
+and the information contained in the image are not sufficient to pick the right one.
+
+So let's fix that.
+
+1. We have added a new command to the _end_ of the [`frontend/Dockerfile`](frontend/Dockerfile)
+   so it gets rebuilt, but quickly
+
+   ```dockerfile
+   ENV DUMMY=1
+   ```
+
+   (this line was introduced when you reset to the `hands-on-3` tag above)
+2. Build a new image with the _provenance_ attestation
+
+   ```console
+   ( cd frontend && \
+     docker build -t $ORG/scout-demo-service:provenance \
+       --provenance=mode=max --push . )
+   ```
+3. Get recommendations about the image that has been pushed
+
+   ```console
+   docker scout recommendations registry://$ORG/scout-demo-service:provenance
+   ```
+
+   This time you didn't provided the `--tag` and it picked the right one!
+
+   > Base image is `alpine:3.14`
+
+4. How did it do that? Let's look at the provenance.
+
+   ```console
+   docker buildx imagetools inspect $ORG/scout-demo-service:provenance \
+     --format '{{ json .Provenance.SLSA }}'
+   ```
+
+   (note we are extracting an element called `SLSA`!)
+   That is a lot of information. Let's focus on information about the base image.
+   One place to see that is in the first element of the `llbDefinition` array:
+
+   ```console
+   docker buildx imagetools inspect $ORG/scout-demo-service:provenance \
+     --format '{{ json .Provenance.SLSA }}' | jq '.buildConfig.llbDefinition[0]'
+   ```
+
+   (requires the [`jq`](https://jqlang.github.io/jq/) command)
+   See how the identifier has the exact SHA used as the base image?
+
+> **Note on `push` and `registry://`**
+>
+> We need to access the provenance attestation from the image. It's written at the level
+> of the _Image Index_ (same as for multi-arch images). The local Docker daemon doesn't allow
+> currently to easily access those information.
+>
+> But they are available from registries. So when pushed, all these extra information will
+> be available and CLI or https://scout.docker.com tools will be able to use them.
+
+### SBOM
+
+When an image is used on the CLI or pushed to https://scout.docker.com one of the first
+steps is to index it. It means to go through the image and find all the packages for instance.
+
+It also means this action might be performed multiple times, like if we want to see
+the vulnerabilities of the image from different computers.
+
+But it's possible to generate SBOM at the build time and push it along with the image.
+That way, whatever the size of the initial image, we will only require the SBOM (enhanced
+with provenance if available) and it will make all the CLI actions faster and be sure
+the information displayed on https://scout.docker.com are the right ones.
+
+1. Change the value of the environment variable at the end of [`frontend/Dockerfile`](frontend/Dockerfile)
+   so the image gets rebuilt and pushed, quickly
+
+   ```dockerfile
+   ENV DUMMY=2
+   ```
+
+2. Build a new image with an _SBOM_ attestation (and keep the provenance!)
+
+   ```console
+   ( cd frontend && \
+     docker build -t $ORG/scout-demo-service:attests \
+       --sbom=generator=docker/scout-sbom-indexer \
+       --provenance=mode=max --push . )
+   ```
+3. Run any `docker scout` CLI command, e.g.,
+
+   ```
+   docker scout quickview $ORG/scout-demo-service:attests
+   ```
+
+   and you should see:
+
+   > ✓ Provenance obtained from attestation
+   > ✓ SBOM obtained from attestation, 79 packages indexed
+
+   This means we only get the SBOM from the attestation, and we are not indexing locally
+   the image anymore. It's faster and more accurate.
+
+### Explore SBOM
+
+1. Extract the SBOM in `SPDX` format:
+
+   ```console
+   docker scout sbom --format spdx registry://$ORG/scout-demo-service:attests
+   ```
+
+   That is a lot of process. Let's look at some more useful format options.
+2. Display packages of the image:
+
+   ```console
+   docker scout sbom --format list registry://$ORG/scout-demo-service:attests
+   ```
+
+   ![](./ss/package-list.png)
+3. Display vulnerable packages:
+
+   ```console
+   docker scout cves --format only-packages --only-vuln-packages registry://$ORG/scout-demo-service:attests
+   ```
+
+   ![](./ss/vuln-packages.png)
