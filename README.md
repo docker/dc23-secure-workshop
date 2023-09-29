@@ -440,7 +440,7 @@ the information displayed on https://scout.docker.com are the right ones.
 
 </details>
 
-## Hands-on #4: Getting back into compliance with Docker Scout
+<details><summary><h2>Hands-on #4: Getting back into compliance with Docker Scout</h2></summary>
 
 ### Reset git repository
 
@@ -548,3 +548,5 @@ concerns across all our images.
 ### Extra Image
 
 Repeat the above steps for the `$ORG/scout-demo-service-back` image (or any other image you have).
+
+</details>
