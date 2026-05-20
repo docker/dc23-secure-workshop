@@ -9,10 +9,10 @@ ENV BLUEBIRD_WARNINGS=0 \
 RUN apk add --no-cache \
   nodejs
 
-COPY package.json ./
+COPY package.json package-lock.json ./
 
 RUN  apk add --no-cache npm \
- && npm i --no-optional \
+ && npm ci --omit=dev \
  && npm cache clean --force \
  && apk del npm
 
